@@ -1,63 +1,84 @@
 package com.bbv.javadojo.optional;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
 public class ArgumentParser {
-    Map<String, Optional<Boolean>> arguments = new HashMap();
-    private final String[] schemaArray;
 
-    public ArgumentParser(final String schema, final String[] args) {
-        schemaArray = parseSchema(schema);
-        parseArguments(args);
-    }
+	SchemaParser schemaParser = new SchemaParser();
+	@SuppressWarnings("rawtypes")
+	private Map<String, Supplier> arguments = new HashMap<>();
+	private final Map<String, Function<String, Supplier<?>>> argumentParserDispatcher;
 
-    private void parseArguments(final String[] args) {
-        for (final String string : args) {
-            if (string.charAt(0) == '-') {
-                if (arguments.containsKey(String.valueOf(string.charAt(1)))) {
-                    arguments.put(String.valueOf(string.charAt(1)), Optional.of(Boolean.TRUE));
-                }
-            }
-        }
-    }
+	public ArgumentParser(final String schema, final String[] args) {
 
-    private String[] parseSchema(final String schema) {
-        final String[] schemaElements = schema.split(",");
-        for (final String schemaElement : schemaElements) {
-            if (schemaElement.length() == 1) {
-                arguments.put(schemaElement, Optional.empty());
-            }
-        }
-        return schemaElements;
-    }
+		argumentParserDispatcher = schemaParser.parseSchema(schema);
+		parseArguments(args);
+	}
 
-    public boolean getBoolean(final String arg) {
-        return arguments.get(arg).orElseThrow(IllegalArgumentException::new);
-    }
+	private void parseArguments(final String[] args) {
+		final String joinedArgs = String.join(" ", args);
+		arguments = Arrays.stream(joinedArgs.split("-")).filter(isNonEmptyString()).map(this::splitTupels)
+				.map(this::validateArgument).collect(Collectors.toMap(this::tagExtractor, this::argumentMapper));
+	}
 
-    public String getString(final char arg) {
-        return "";
-    }
+	private Predicate<? super String> isNonEmptyString() {
+		return s -> s != null && !s.isEmpty();
+	}
 
-    public int getInt(final char arg) {
-        return 0;
-    }
+	private String tagExtractor(final String[] string) {
+		return string[0];
+	}
 
-    public double getDouble(final char arg) {
-        return 0.0;
-    }
+	private Supplier<?> argumentMapper(final String[] string) {
+		return argumentParserDispatcher.get(string[0]).apply(string[string.length - 1]);
+	}
 
-    public String[] getStringArray(final char arg) {
-        return null;
-    }
+	private String[] validateArgument(String[] argument) {
+		if (isArgumentValid(argument[0])) {
+			return argument;
+		} else {
+			throw new IllegalArgumentException("Unknown Argument received: " + argument[0]);
+		}
 
-    public Map<String, String> getMap(final char arg) {
-        return null;
-    }
+	}
 
-    public int nextArgument() {
-        // TODO Auto-generated method stub
-        return 0;
-    }
+	private boolean isArgumentValid(final String string) {
+		return argumentParserDispatcher.containsKey(string);
+	}
+
+	private String[] splitTupels(String tupel) {
+		return tupel.split(" ");
+	}
+
+	public boolean getBoolean(final String arg) {
+		return (boolean) Optional.ofNullable(arguments.get(arg)).orElse(() -> Boolean.FALSE).get();
+	}
+
+	public String getString(final String string) {
+		return (String) Optional.ofNullable(arguments.get(string)).orElse(() -> "").get();
+	}
+
+	public int getInt(final String arg) {
+		return (int) Optional.ofNullable(arguments.get(arg)).orElse(() -> 0).get();
+	}
+
+	public double getDouble(final String string) {
+		return (double) Optional.ofNullable(arguments.get(string)).orElse(() -> 0.0).get();
+	}
+
+	public String[] getStringArray(final char arg) {
+		return null;
+	}
+
+	public Map<String, String> getMap(final char arg) {
+		return null;
+	}
+
 }
