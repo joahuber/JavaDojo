@@ -1,39 +1,12 @@
 package com.bbv.javadojo.optional;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 public class ArgumentParser {
-    Map<String, Optional<Boolean>> arguments = new HashMap();
-    private final String[] schemaArray;
-
     public ArgumentParser(final String schema, final String[] args) {
-        schemaArray = parseSchema(schema);
-        parseArguments(args);
     }
 
-    private void parseArguments(final String[] args) {
-        for (final String string : args) {
-            if (string.charAt(0) == '-') {
-                if (arguments.containsKey(String.valueOf(string.charAt(1)))) {
-                    arguments.put(String.valueOf(string.charAt(1)), Optional.of(Boolean.TRUE));
-                }
-            }
-        }
-    }
-
-    private String[] parseSchema(final String schema) {
-        final String[] schemaElements = schema.split(",");
-        for (final String schemaElement : schemaElements) {
-            if (schemaElement.length() == 1) {
-                arguments.put(schemaElement, Optional.empty());
-            }
-        }
-        return schemaElements;
-    }
-
-    public boolean getBoolean(final String arg) {
-        return arguments.get(arg).orElseThrow(IllegalArgumentException::new);
+    public boolean getBoolean(final char arg) {
+        return false;
     }
 
     public String getString(final char arg) {
